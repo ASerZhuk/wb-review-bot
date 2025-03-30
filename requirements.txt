@@ -1,0 +1,8 @@
+python-telegram-bot==20.7
+firebase-admin==6.3.0
+requests==2.31.0
+g4f==0.2.1
+pyTelegramBotAPI==4.15.2
+python-dotenv==1.0.0
+flask
+flask-cors 
