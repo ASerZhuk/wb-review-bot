@@ -1,5 +1,8 @@
 import os
 from dotenv import load_dotenv
+import logging
+
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -13,46 +16,35 @@ WEBHOOK_URL = f"{WEBHOOK_HOST}{WEBHOOK_PATH}"
 WEBAPP_HOST = '0.0.0.0'
 WEBAPP_PORT = int(os.getenv('PORT', 3000))
 
-def format_firebase_key(key: str) -> str:
-    """Форматирует приватный ключ Firebase"""
-    if not key:
-        raise ValueError("Firebase private key is not set")
-    # Удаляем лишние кавычки в начале и конце
-    key = key.strip('"\'')
-    # Заменяем экранированные переносы строк на реальные
-    key = key.replace('\\n', '\n')
-    if not key.startswith('-----BEGIN PRIVATE KEY-----'):
-        raise ValueError("Invalid private key format")
-    return key
-
-# Проверяем наличие всех необходимых переменных
-required_vars = [
-    'FIREBASE_PROJECT_ID',
-    'FIREBASE_PRIVATE_KEY_ID',
-    'FIREBASE_PRIVATE_KEY',
-    'FIREBASE_CLIENT_EMAIL',
-    'FIREBASE_CLIENT_ID',
-    'FIREBASE_CLIENT_X509_CERT_URL'
-]
-
-missing_vars = [var for var in required_vars if not os.getenv(var)]
-if missing_vars:
-    raise ValueError(f"Missing required environment variables: {', '.join(missing_vars)}")
+def get_env_var(name: str, required: bool = True) -> str:
+    """Получение переменной окружения с логированием"""
+    value = os.getenv(name)
+    if required and not value:
+        logger.error(f"Missing required environment variable: {name}")
+        raise ValueError(f"Missing required environment variable: {name}")
+    logger.info(f"Environment variable {name} {'found' if value else 'not found'}")
+    return value or ''
 
 # Конфигурация Firebase
 FIREBASE_CREDENTIALS_JSON = {
     "type": "service_account",
-    "project_id": os.getenv('FIREBASE_PROJECT_ID'),
-    "private_key_id": os.getenv('FIREBASE_PRIVATE_KEY_ID'),
-    "private_key": format_firebase_key(os.getenv('FIREBASE_PRIVATE_KEY')),
-    "client_email": os.getenv('FIREBASE_CLIENT_EMAIL'),
-    "client_id": os.getenv('FIREBASE_CLIENT_ID'),
+    "project_id": get_env_var('FIREBASE_PROJECT_ID'),
+    "private_key_id": get_env_var('FIREBASE_PRIVATE_KEY_ID'),
+    "private_key": get_env_var('FIREBASE_PRIVATE_KEY').strip('"\'').replace('\\n', '\n'),
+    "client_email": get_env_var('FIREBASE_CLIENT_EMAIL'),
+    "client_id": get_env_var('FIREBASE_CLIENT_ID'),
     "auth_uri": "https://accounts.google.com/o/oauth2/auth",
     "token_uri": "https://oauth2.googleapis.com/token",
     "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-    "client_x509_cert_url": os.getenv('FIREBASE_CLIENT_X509_CERT_URL'),
+    "client_x509_cert_url": get_env_var('FIREBASE_CLIENT_X509_CERT_URL'),
     "universe_domain": "googleapis.com"
 }
+
+# Проверяем формат приватного ключа
+if not FIREBASE_CREDENTIALS_JSON['private_key'].startswith('-----BEGIN PRIVATE KEY-----'):
+    logger.error("Invalid private key format")
+    logger.error(f"Key starts with: {FIREBASE_CREDENTIALS_JSON['private_key'][:50]}...")
+    raise ValueError("Invalid private key format")
 
 # Конфигурация ЮMoney
 YOOMONEY_WALLET = os.getenv('YOOMONEY_WALLET')

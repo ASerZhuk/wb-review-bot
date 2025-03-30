@@ -3,54 +3,66 @@ from firebase_admin import credentials, firestore
 import os
 from datetime import datetime
 from config import FIREBASE_CREDENTIALS_JSON
+import logging
+
+logger = logging.getLogger(__name__)
 
 class FirebaseManager:
     def __init__(self):
         try:
-            # Инициализация Firebase с помощью словаря учетных данных
+            logger.info("Starting Firebase initialization...")
+            logger.info(f"Project ID: {FIREBASE_CREDENTIALS_JSON.get('project_id')}")
+            logger.info(f"Client Email: {FIREBASE_CREDENTIALS_JSON.get('client_email')}")
+            
+            # Проверяем, не инициализирован ли уже Firebase
             if not firebase_admin._apps:
-                if not FIREBASE_CREDENTIALS_JSON.get('private_key'):
-                    raise ValueError("Firebase private key is missing")
+                # Проверяем наличие всех необходимых полей
+                required_fields = ['type', 'project_id', 'private_key_id', 'private_key', 'client_email']
+                missing_fields = [field for field in required_fields if not FIREBASE_CREDENTIALS_JSON.get(field)]
                 
-                # Проверяем формат ключа
-                private_key = FIREBASE_CREDENTIALS_JSON['private_key']
-                if not private_key.startswith('-----BEGIN PRIVATE KEY-----'):
-                    raise ValueError(f"Invalid private key format. Key starts with: {private_key[:50]}...")
+                if missing_fields:
+                    raise ValueError(f"Missing required fields in Firebase credentials: {', '.join(missing_fields)}")
                 
-                print("Initializing Firebase with credentials...")
-                print(f"Project ID: {FIREBASE_CREDENTIALS_JSON.get('project_id')}")
-                print(f"Client Email: {FIREBASE_CREDENTIALS_JSON.get('client_email')}")
-                
+                logger.info("Creating Firebase credentials...")
                 cred = credentials.Certificate(FIREBASE_CREDENTIALS_JSON)
+                logger.info("Initializing Firebase app...")
                 firebase_admin.initialize_app(cred)
-                print("Firebase initialized successfully!")
+                logger.info("Firebase app initialized successfully")
+            else:
+                logger.info("Firebase already initialized")
             
             self.db = firestore.client()
+            logger.info("Firestore client created successfully")
+            
         except Exception as e:
-            print(f"Firebase initialization error: {str(e)}")
-            print("Credentials used:")
+            logger.error(f"Firebase initialization error: {str(e)}")
+            logger.error("Firebase credentials:")
             for key, value in FIREBASE_CREDENTIALS_JSON.items():
                 if key != 'private_key':
-                    print(f"{key}: {value}")
+                    logger.error(f"{key}: {value}")
                 else:
-                    print(f"private_key length: {len(value)}")
+                    logger.error(f"private_key length: {len(str(value))}")
             raise
 
     def get_user_attempts(self, user_id: int) -> int:
         """Получение количества оставшихся попыток пользователя"""
-        doc_ref = self.db.collection('users').document(str(user_id))
-        doc = doc_ref.get()
-        if doc.exists:
-            return doc.to_dict().get('attempts', 0)
-        else:
-            # Создаем нового пользователя с 1 попыткой
-            doc_ref.set({
-                'user_id': user_id,
-                'attempts': 1,
-                'created_at': datetime.now(),
-                'total_attempts_used': 0
-            })
-            return 1
+        try:
+            doc_ref = self.db.collection('users').document(str(user_id))
+            doc = doc_ref.get()
+            if doc.exists:
+                return doc.to_dict().get('attempts', 0)
+            else:
+                # Создаем нового пользователя с 1 попыткой
+                doc_ref.set({
+                    'user_id': user_id,
+                    'attempts': 1,
+                    'created_at': datetime.now(),
+                    'total_attempts_used': 0
+                })
+                return 1
+        except Exception as e:
+            logger.error(f"Error in get_user_attempts: {str(e)}")
+            return 0
 
     def decrease_attempts(self, user_id: int) -> int:
         """Уменьшение количества попыток"""
