@@ -6,11 +6,12 @@ import g4f
 from telebot import types
 from firebase_manager import FirebaseManager
 from payment_manager import PaymentManager
+import os
+from flask import Flask
 
 # Инициализация бота
 BOT_TOKEN = '7909512676:AAHqSHHpM6QkJdGsisH9lbiv5-o4Veuv3oI'
 bot = telebot.TeleBot(BOT_TOKEN)
-bot.remove_webhook()
 
 # Инициализация менеджеров
 firebase_manager = FirebaseManager()
@@ -277,4 +278,10 @@ def handle_message(message):
         bot.reply_to(message, "❌ Пожалуйста, отправьте корректную ссылку на товар с Wildberries или артикул товара.")
 
 if __name__ == '__main__':
-    bot.polling(none_stop=False) 
+    if os.environ.get('WEBHOOK_ENABLED', 'false').lower() == 'true':
+        # Если включен режим вебхуков, сервер запускается через app.py
+        pass
+    else:
+        # Если вебхуки выключены, используем polling
+        bot.remove_webhook()
+        bot.polling(none_stop=True) 
