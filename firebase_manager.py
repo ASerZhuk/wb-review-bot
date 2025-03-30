@@ -11,12 +11,29 @@ class FirebaseManager:
             if not firebase_admin._apps:
                 if not FIREBASE_CREDENTIALS_JSON.get('private_key'):
                     raise ValueError("Firebase private key is missing")
+                
+                # Проверяем формат ключа
+                private_key = FIREBASE_CREDENTIALS_JSON['private_key']
+                if not private_key.startswith('-----BEGIN PRIVATE KEY-----'):
+                    raise ValueError(f"Invalid private key format. Key starts with: {private_key[:50]}...")
+                
+                print("Initializing Firebase with credentials...")
+                print(f"Project ID: {FIREBASE_CREDENTIALS_JSON.get('project_id')}")
+                print(f"Client Email: {FIREBASE_CREDENTIALS_JSON.get('client_email')}")
+                
                 cred = credentials.Certificate(FIREBASE_CREDENTIALS_JSON)
                 firebase_admin.initialize_app(cred)
+                print("Firebase initialized successfully!")
             
             self.db = firestore.client()
         except Exception as e:
             print(f"Firebase initialization error: {str(e)}")
+            print("Credentials used:")
+            for key, value in FIREBASE_CREDENTIALS_JSON.items():
+                if key != 'private_key':
+                    print(f"{key}: {value}")
+                else:
+                    print(f"private_key length: {len(value)}")
             raise
 
     def get_user_attempts(self, user_id: int) -> int:
