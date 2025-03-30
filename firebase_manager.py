@@ -1,15 +1,16 @@
 import firebase_admin
 from firebase_admin import credentials, firestore
+import os
 from datetime import datetime
-from config import FIREBASE_CREDENTIALS, FIREBASE_PROJECT_ID
+from config import FIREBASE_CREDENTIALS_JSON
 
 class FirebaseManager:
     def __init__(self):
-        # Инициализация Firebase с вашим service account key
-        cred = credentials.Certificate(FIREBASE_CREDENTIALS)
-        firebase_admin.initialize_app(cred, {
-            'projectId': FIREBASE_PROJECT_ID
-        })
+        # Инициализация Firebase с помощью словаря учетных данных
+        if not firebase_admin._apps:
+            cred = credentials.Certificate(FIREBASE_CREDENTIALS_JSON)
+            firebase_admin.initialize_app(cred)
+        
         self.db = firestore.client()
 
     def get_user_attempts(self, user_id: int) -> int:

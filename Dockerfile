@@ -21,20 +21,13 @@ WORKDIR /app
 # Копируем зависимости из builder
 COPY --from=builder /root/.local /root/.local
 
-# Копируем файлы проекта и сертификат Firebase
+# Копируем файлы проекта
 COPY . .
-COPY paymentbotwb-firebase-adminsdk-fbsvc-3ad5a24c65.json .
 
 # Переменные окружения
 ENV PATH=/root/.local/bin:$PATH
-ENV GOOGLE_APPLICATION_CREDENTIALS="/app/paymentbotwb-firebase-adminsdk-fbsvc-3ad5a24c65.json"
 ENV WEBHOOK_ENABLED=true
 ENV PORT=3000
-
-# Проверяем наличие файла сертификата
-RUN if [ ! -f "$GOOGLE_APPLICATION_CREDENTIALS" ]; then \
-    echo "ERROR: Firebase credentials file not found!" && exit 1; \
-    fi
 
 # Запуск через gunicorn
 CMD ["gunicorn", "--config", "gunicorn.conf.py", "app:app"]
