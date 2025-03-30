@@ -6,12 +6,18 @@ from config import FIREBASE_CREDENTIALS_JSON
 
 class FirebaseManager:
     def __init__(self):
-        # Инициализация Firebase с помощью словаря учетных данных
-        if not firebase_admin._apps:
-            cred = credentials.Certificate(FIREBASE_CREDENTIALS_JSON)
-            firebase_admin.initialize_app(cred)
-        
-        self.db = firestore.client()
+        try:
+            # Инициализация Firebase с помощью словаря учетных данных
+            if not firebase_admin._apps:
+                if not FIREBASE_CREDENTIALS_JSON.get('private_key'):
+                    raise ValueError("Firebase private key is missing")
+                cred = credentials.Certificate(FIREBASE_CREDENTIALS_JSON)
+                firebase_admin.initialize_app(cred)
+            
+            self.db = firestore.client()
+        except Exception as e:
+            print(f"Firebase initialization error: {str(e)}")
+            raise
 
     def get_user_attempts(self, user_id: int) -> int:
         """Получение количества оставшихся попыток пользователя"""
