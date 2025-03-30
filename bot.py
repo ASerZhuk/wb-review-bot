@@ -8,14 +8,25 @@ from firebase_manager import FirebaseManager
 from payment_manager import PaymentManager
 import os
 from flask import Flask
+import logging
+
+# Настройка логирования
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Инициализация бота
-BOT_TOKEN = '7909512676:AAHqSHHpM6QkJdGsisH9lbiv5-o4Veuv3oI'
-bot = telebot.TeleBot(BOT_TOKEN)
+bot = telebot.TeleBot(os.getenv('BOT_TOKEN'))
 
-# Инициализация менеджеров
-firebase_manager = FirebaseManager()
-payment_manager = PaymentManager()
+try:
+    # Инициализация менеджеров
+    logger.info("Initializing Firebase Manager...")
+    firebase_manager = FirebaseManager()
+    logger.info("Initializing Payment Manager...")
+    payment_manager = PaymentManager()
+    logger.info("Managers initialized successfully")
+except Exception as e:
+    logger.error(f"Error initializing managers: {str(e)}")
+    raise
 
 # Добавим список админов (укажите нужные ID)
 ADMIN_IDS = [1312244058]  # Замените на реальные ID администраторов
@@ -136,23 +147,39 @@ def analyze_reviews(reviews_list):
             return f"Не удалось выполнить анализ отзывов: {str(e2)}"
 
 @bot.message_handler(commands=['start'])
-def send_welcome(message):
-    user_id = message.from_user.id
-    markup = types.InlineKeyboardMarkup()
-    
-    # Кнопка анализа товаров для всех пользователей
-    analyze_button = types.InlineKeyboardButton("📊 Анализ товара", callback_data="analyze")
-    markup.add(analyze_button)
-    
-    # Добавляем кнопку админ-панели только для администраторов
-    if user_id in ADMIN_IDS:
-        admin_button = types.InlineKeyboardButton("⚙️ Админ панель", callback_data="admin_panel")
-        markup.add(admin_button)
-    
-    bot.reply_to(message, 
-        "👋 Привет! Я бот для анализа товаров на Wildberries.\n\n"
-        "🔍 Выберите действие:", 
-        reply_markup=markup)
+def start(message):
+    try:
+        user_id = message.from_user.id
+        username = message.from_user.username or "пользователь"
+        
+        # Получаем количество доступных попыток
+        attempts = firebase_manager.get_user_attempts(user_id)
+        
+        welcome_text = (
+            f"👋 Привет, {username}!\n\n"
+            "Я помогу проанализировать отзывы с Wildberries. "
+            "Просто отправь мне ссылку на товар или его артикул.\n\n"
+            f"У тебя есть {attempts} попыток для анализа."
+        )
+        
+        # Создаем клавиатуру с кнопкой оплаты, если попытки закончились
+        markup = None
+        if attempts <= 0:
+            markup = types.InlineKeyboardMarkup()
+            payment_msg, button_text = payment_manager.get_payment_message()
+            payment_button = types.InlineKeyboardButton(
+                button_text,
+                url=payment_manager.create_payment_link(user_id)
+            )
+            markup.add(payment_button)
+            welcome_text += f"\n\n{payment_msg}"
+        
+        logger.info(f"Sending welcome message to user {user_id}")
+        bot.reply_to(message, welcome_text, reply_markup=markup)
+        
+    except Exception as e:
+        logger.error(f"Error in start handler: {str(e)}")
+        bot.reply_to(message, "Произошла ошибка при запуске бота. Пожалуйста, попробуйте позже.")
 
 # Добавим обработчик callback-запросов
 @bot.callback_query_handler(func=lambda call: True)
@@ -202,10 +229,10 @@ def process_new_price(message):
         
         bot.reply_to(message, f"✅ Цена успешно обновлена до {new_price} рублей за 10 попыток")
         # Показываем стартовое меню
-        send_welcome(message)
+        start(message)
     except ValueError:
         bot.reply_to(message, "❌ Пожалуйста, введите корректное число")
-        send_welcome(message)
+        start(message)
 
 # Обновим существующий обработчик сообщений, добавив проверку на состояние
 @bot.message_handler(func=lambda message: True)
@@ -278,10 +305,13 @@ def handle_message(message):
         bot.reply_to(message, "❌ Пожалуйста, отправьте корректную ссылку на товар с Wildberries или артикул товара.")
 
 if __name__ == '__main__':
+    logger.info("Starting bot...")
     if os.environ.get('WEBHOOK_ENABLED', 'false').lower() == 'true':
         # Если включен режим вебхуков, сервер запускается через app.py
+        logger.info("Webhook mode enabled")
         pass
     else:
         # Если вебхуки выключены, используем polling
+        logger.info("Starting polling mode")
         bot.remove_webhook()
         bot.polling(none_stop=True) 
