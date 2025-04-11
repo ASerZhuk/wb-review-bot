@@ -133,7 +133,7 @@ def analyze_reviews(reviews_list):
     """Анализирует отзывы с помощью G4F"""
     reviews_text = "\n\n".join(reviews_list)
     prompt = f"""
-    На основе следующих отзывов с Wildberries сделай ОЧЕНЬ КРАТКИЙ анализ товара.
+    На основе следующих отзывов с Wildberries сделай ОЧЕНЬ КРАТКИЙ анализ товара не более 2000 символов.
     Отзывы:
     {reviews_text}
     
