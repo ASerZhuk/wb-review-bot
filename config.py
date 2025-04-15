@@ -11,6 +11,9 @@ BOT_TOKEN = os.getenv('BOT_TOKEN')
 WEBHOOK_HOST = os.getenv('WEBHOOK_HOST')
 WEBHOOK_PATH = '/webhook/telegram'
 WEBHOOK_URL = f"{WEBHOOK_HOST}{WEBHOOK_PATH}"
+# Проверяем, нет ли двойного слеша
+if '//' in WEBHOOK_URL and not WEBHOOK_URL.startswith('http'):
+    WEBHOOK_URL = WEBHOOK_URL.replace('//', '/')
 
 # Конфигурация веб-сервера
 WEBAPP_HOST = '0.0.0.0'
