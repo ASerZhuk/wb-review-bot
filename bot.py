@@ -153,9 +153,12 @@ def analyze_reviews(reviews_list):
     """
     
     try:
+        # Используем провайдера Blackbox и модель deepseek
         response = g4f.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": prompt}]
+            model="deepseek",
+            provider=g4f.Provider.Blackbox,
+            messages=[{"role": "user", "content": prompt}],
+            timeout=60  # Увеличиваем таймаут для надежности
         )
         # Удаляем рекламные ссылки из ответа
         cleaned_response = re.sub(r'https?://\S+', '', response)
@@ -164,20 +167,37 @@ def analyze_reviews(reviews_list):
             cleaned_response = cleaned_response[:2500] + "..."
         return cleaned_response.strip()
     except Exception as e:
+        logger.error(f"Error with Blackbox/deepseek: {str(e)}")
         try:
-            # Пробуем другую модель, если первая не сработала
-            response = g4f.ChatCompletion.create(
-                model="gpt-4",
-                messages=[{"role": "user", "content": prompt}]
-            )
-            # Удаляем рекламные ссылки из ответа
-            cleaned_response = re.sub(r'https?://\S+', '', response)
-            # Ограничиваем длину ответа
-            if len(cleaned_response) > 2500:
-                cleaned_response = cleaned_response[:2500] + "..."
-            return cleaned_response.strip()
-        except Exception as e2:
-            return f"Не удалось выполнить анализ отзывов: {str(e2)}"
+            # Пробуем запасной вариант - другие провайдеры
+            fallback_providers = [
+                g4f.Provider.DeepAi,
+                g4f.Provider.GptGo,
+                g4f.Provider.You,
+                g4f.Provider.ChatBase
+            ]
+            
+            for provider in fallback_providers:
+                try:
+                    logger.info(f"Trying fallback provider: {provider.__name__}")
+                    response = g4f.ChatCompletion.create(
+                        model="gpt-3.5-turbo",
+                        provider=provider,
+                        messages=[{"role": "user", "content": prompt}],
+                        timeout=30
+                    )
+                    cleaned_response = re.sub(r'https?://\S+', '', response)
+                    if len(cleaned_response) > 2500:
+                        cleaned_response = cleaned_response[:2500] + "..."
+                    return cleaned_response.strip()
+                except Exception as e2:
+                    logger.error(f"Error with fallback provider {provider.__name__}: {str(e2)}")
+                    continue
+            
+            # Если все запасные провайдеры не сработали, возвращаем ошибку
+            return f"Не удалось выполнить анализ отзывов: {str(e)}"
+        except Exception as e3:
+            return f"Не удалось выполнить анализ отзывов: {str(e3)}"
 
 @bot.message_handler(commands=['start'])
 def start(message):
