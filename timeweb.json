@@ -1,12 +1,13 @@
 {
     "name": "wb-review-bot",
-    "image": "python:3.11-slim",
+    "dockerfile": "Dockerfile",
     "port": 3000,
     "env": {
         "PYTHON_VERSION": "3.11"
     },
     "volumes": [],
     "health_check": {
+        "protocol": "http",
         "port": 3000,
         "path": "/",
         "timeout": 30

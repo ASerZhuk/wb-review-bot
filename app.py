@@ -121,6 +121,11 @@ def payment_success():
         logger.error(f"Error processing payment success: {str(e)}")
         return "Error processing payment", 500
 
+# Простой health check
+@app.route('/health', methods=['GET'])
+def health_check():
+    return jsonify({'status': 'ok'}), 200
+
 if __name__ == "__main__":
     logger.info("Starting Flask server...")
     try:

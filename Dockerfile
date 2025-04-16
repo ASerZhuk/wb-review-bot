@@ -1,49 +1,25 @@
 # Базовый образ
 FROM python:3.11-slim
 
-# Порт для Timeweb Cloud
-EXPOSE 3000
-
-# Рабочая директория
-WORKDIR /app
+# Явно указываем порт для Timeweb Cloud
+EXPOSE 3000/tcp
 
 # Установка системных зависимостей
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     gcc \
     curl \
-    netcat-traditional \
     && rm -rf /var/lib/apt/lists/*
+
+# Рабочая директория
+WORKDIR /app
 
 # Копирование и установка зависимостей
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Копирование кода
+# Копирование кода приложения
 COPY . .
 
-# Создаем скрипт для проверки и запуска
-RUN echo '#!/bin/bash\n\
-    echo "Checking environment variables..."\n\
-    required_vars=("BOT_TOKEN" "WEBHOOK_HOST" "FIREBASE_PROJECT_ID" "FIREBASE_PRIVATE_KEY")\n\
-    for var in "${required_vars[@]}"; do\n\
-    if [ -z "${!var}" ]; then\n\
-    echo "Error: Required environment variable $var is not set"\n\
-    exit 1\n\
-    fi\n\
-    done\n\
-    echo "Environment variables OK"\n\
-    \n\
-    echo "Starting gunicorn..."\n\
-    gunicorn --bind 0.0.0.0:3000 \\\n\
-    --workers 1 \\\n\
-    --timeout 120 \\\n\
-    --log-level debug \\\n\
-    --error-logfile - \\\n\
-    --access-logfile - \\\n\
-    --capture-output \\\n\
-    app:app\n\
-    ' > /app/start.sh && chmod +x /app/start.sh
-
-# Команда запуска
-CMD ["/app/start.sh"]
+# Запуск приложения
+CMD ["gunicorn", "--bind", "0.0.0.0:3000", "--workers", "1", "--timeout", "120", "--log-level", "debug", "--access-logfile", "-", "--error-logfile", "-", "app:app"]

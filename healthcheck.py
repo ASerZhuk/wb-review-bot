@@ -2,6 +2,7 @@ import os
 import sys
 import requests
 from time import sleep
+from flask import Blueprint
 
 def check_health():
     """Проверка здоровья приложения"""
@@ -28,6 +29,12 @@ def check_health():
     
     print("Health check failed after all retries")
     return False
+
+health_bp = Blueprint('health', __name__)
+
+@health_bp.route('/')
+def health_check():
+    return {'status': 'ok'}, 200
 
 if __name__ == "__main__":
     sys.exit(0 if check_health() else 1) 
