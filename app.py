@@ -144,9 +144,8 @@ def health_check():
 if __name__ == "__main__":
     logger.info("Starting Flask server...")
     try:
-        # Используем стандартные настройки для Timeweb Cloud
-        port = int(os.environ.get('PORT', 8080))
-        app.run(host='0.0.0.0', port=port, debug=False)
+        # Всегда используем порт 8080 для Timeweb Cloud
+        app.run(host='0.0.0.0', port=8080, debug=False)
     except Exception as e:
         logger.error(f"Error starting server: {str(e)}")
         raise 
