@@ -6,7 +6,7 @@ from flask import Blueprint
 
 def check_health():
     """Проверка здоровья приложения"""
-    url = f"http://localhost:{os.getenv('PORT', '3000')}"
+    url = f"http://localhost:{os.getenv('PORT', '8080')}"
     max_retries = 5
     retry_delay = 2
 

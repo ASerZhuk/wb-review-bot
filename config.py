@@ -61,7 +61,7 @@ def load_firebase_credentials():
             "type": os.getenv('FIREBASE_TYPE', 'service_account'),
             "project_id": get_env_var('FIREBASE_PROJECT_ID'),
             "private_key_id": get_env_var('FIREBASE_PRIVATE_KEY_ID'),
-            "private_key": get_env_var('FIREBASE_PRIVATE_KEY'),  # Используем ключ как есть, без форматирования
+            "private_key": get_env_var('FIREBASE_PRIVATE_KEY'),
             "client_email": get_env_var('FIREBASE_CLIENT_EMAIL'),
             "client_id": get_env_var('FIREBASE_CLIENT_ID'),
             "auth_uri": os.getenv('FIREBASE_AUTH_URI', "https://accounts.google.com/o/oauth2/auth"),

@@ -1,6 +1,6 @@
 from flask import Flask, request, abort, redirect, jsonify
 from bot import bot, logger, firebase_manager
-from config import WEBHOOK_URL, WEBHOOK_PATH, WEBAPP_HOST, WEBAPP_PORT
+from config import WEBHOOK_URL, WEBHOOK_PATH
 from flask_cors import CORS
 import telebot
 import os
@@ -59,8 +59,7 @@ def index():
             'WEBHOOK_HOST': os.getenv('WEBHOOK_HOST'),
             'FIREBASE_PROJECT_ID': bool(os.getenv('FIREBASE_PROJECT_ID')),
             'WEBHOOK_PATH': WEBHOOK_PATH,
-            'WEBHOOK_URL': WEBHOOK_URL,
-            'PORT': os.getenv('PORT', '3000')
+            'WEBHOOK_URL': WEBHOOK_URL
         }
         
         # Проверяем webhook
@@ -92,7 +91,7 @@ def index():
 def root_webhook():
     if request.headers.get('content-type') == 'application/json':
         json_string = request.get_data().decode('utf-8')
-        logger.info(f"Received webhook to root path: {json_string[:100]}...")  # Логируем только начало для безопасности
+        logger.info(f"Received webhook to root path: {json_string[:100]}...")
         
         try:
             update = telebot.types.Update.de_json(json_string)
@@ -143,9 +142,4 @@ def health_check():
 
 if __name__ == "__main__":
     logger.info("Starting Flask server...")
-    try:
-        # Всегда используем порт 8080 для Timeweb Cloud
-        app.run(host='0.0.0.0', port=8080)
-    except Exception as e:
-        logger.error(f"Error starting server: {str(e)}")
-        raise 
+    app.run(host='0.0.0.0', port=8080) 
