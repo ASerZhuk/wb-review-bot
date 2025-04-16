@@ -1,5 +1,8 @@
-
+gunicorn
 firebase-admin
 requests
 g4f
 pyTelegramBotAPI
+python-dotenv
+flask
+flask-cors
