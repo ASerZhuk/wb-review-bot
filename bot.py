@@ -3,7 +3,7 @@ import json
 import requests
 import re
 import g4f
-from g4f.Provider import Blackbox
+from g4f.Provider import Blackbox, DeepInfraChat, You, Bing, GPTalk, HuggingChat
 from telebot import types
 from firebase_manager import FirebaseManager
 from payment_manager import PaymentManager
@@ -11,6 +11,7 @@ import os
 from flask import Flask
 import logging
 import random
+import time
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
@@ -111,6 +112,9 @@ class WbReview:
     def get_root_id(self):
         """Получение id родителя и названия товара"""
         try:
+            # Добавляем случайную задержку
+            time.sleep(random.uniform(1, 3))
+            
             headers = get_random_headers()
             response = requests.get(
                 f'https://card.wb.ru/cards/v2/detail?appType=1&curr=rub&dest=-8144334&spp=30&nm={self.sku}',
@@ -118,7 +122,8 @@ class WbReview:
                 timeout=10
             )
             if response.status_code == 403:
-                # Пробуем еще раз с другими заголовками
+                # Пробуем еще раз с другими заголовками после задержки
+                time.sleep(random.uniform(2, 4))
                 headers = get_random_headers()
                 response = requests.get(
                     f'https://card.wb.ru/cards/v2/detail?appType=1&curr=rub&dest=-8144334&spp=30&nm={self.sku}',
@@ -148,6 +153,9 @@ class WbReview:
         if not self.root_id:
             raise Exception("root_id не установлен")
             
+        # Добавляем случайную задержку
+        time.sleep(random.uniform(1, 3))
+        
         headers = get_random_headers()
         try:
             response = requests.get(
@@ -156,7 +164,8 @@ class WbReview:
                 timeout=10
             )
             if response.status_code == 403:
-                # Пробуем с другими заголовками
+                # Пробуем с другими заголовками после задержки
+                time.sleep(random.uniform(2, 4))
                 headers = get_random_headers()
                 response = requests.get(
                     f'https://feedbacks1.wb.ru/feedbacks/v1/{self.root_id}',
@@ -169,10 +178,11 @@ class WbReview:
                     raise Exception("Сервер 1 не подошел")
                 return response.json()
             
-            # Пробуем второй сервер
+            # Пробуем второй сервер после задержки
+            time.sleep(random.uniform(2, 4))
             headers = get_random_headers()
             response = requests.get(
-                f'https://feedbacks2.wb.ru/feedbacks/v1/{self.root_id}',
+                f'https://feedbacks1.wb.ru/feedbacks/v2/{self.root_id}',
                 headers=headers,
                 timeout=10
             )
@@ -196,6 +206,9 @@ class WbReview:
 
 def analyze_reviews(reviews_list):
     """Анализирует отзывы с помощью G4F"""
+    if not reviews_list:
+        return "❌ Не найдено отзывов для анализа"
+
     reviews_text = "\n\n".join(reviews_list)
     prompt = f"""
     На основе следующих отзывов с Wildberries сделай ОЧЕНЬ КРАТКИЙ анализ товара не более 1500 символов.
@@ -217,38 +230,41 @@ def analyze_reviews(reviews_list):
     Не добавляй лишней информации и не используй длинные формулировки.
     """
     
-    try:
-        # Используем провайдера Blackbox и модель deepseek-v3
-        response = g4f.ChatCompletion.create(
-            model="deepseek-v3",
-            provider=Blackbox,  # Используем явно импортированный провайдер
-            messages=[{"role": "user", "content": prompt}],
-            timeout=60  # Увеличиваем таймаут для надежности
-        )
-        # Удаляем рекламные ссылки из ответа
-        cleaned_response = re.sub(r'https?://\S+', '', response)
-        # Ограничиваем длину ответа
-        if len(cleaned_response) > 2500:
-            cleaned_response = cleaned_response[:2500] + "..."
-        return cleaned_response.strip()
-    except Exception as e:
-        logger.error(f"Error with Blackbox/deepseek-v3: {str(e)}")
+    # Список провайдеров для попытки
+    providers = [
+        Blackbox,
+        DeepInfraChat,
+        You,
+        Bing,
+        GPTalk,
+        HuggingChat
+    ]
+    
+    last_error = None
+    for provider in providers:
         try:
-            # Пробуем запасной вариант - DeepInfraChat
-            logger.info("Trying fallback provider: DeepInfraChat")
+            logger.info(f"Trying provider {provider.__name__}")
             response = g4f.ChatCompletion.create(
-                model="o3-mini",
-                provider=Blackbox,
+                model="deepseek-v3",  # Используем только модель deepseek-v3
+                provider=provider,
                 messages=[{"role": "user", "content": prompt}],
-                timeout=30
+                timeout=60
             )
+            # Удаляем рекламные ссылки из ответа
             cleaned_response = re.sub(r'https?://\S+', '', response)
+            # Ограничиваем длину ответа
             if len(cleaned_response) > 2500:
                 cleaned_response = cleaned_response[:2500] + "..."
             return cleaned_response.strip()
-        except Exception as e2:
-            logger.error(f"Error with fallback provider: {str(e2)}")
-            return f"Не удалось выполнить анализ отзывов. Пожалуйста, попробуйте позже."
+        except Exception as e:
+            last_error = e
+            logger.error(f"Error with provider {provider.__name__}: {str(e)}")
+            continue
+    
+    # Если все провайдеры не сработали
+    error_msg = str(last_error) if last_error else "неизвестная ошибка"
+    logger.error(f"All providers failed. Last error: {error_msg}")
+    return f"❌ Не удалось выполнить анализ отзывов. Пожалуйста, попробуйте позже.\nОшибка: {error_msg}"
 
 @bot.message_handler(commands=['start'])
 def start(message):
