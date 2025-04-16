@@ -173,33 +173,21 @@ def analyze_reviews(reviews_list):
     except Exception as e:
         logger.error(f"Error with Blackbox/deepseek-v3: {str(e)}")
         try:
-            # Пробуем запасной вариант - другие провайдеры
-            fallback_providers = [
-                g4f.Provider.DeepInfraChat,
-                g4f.Provider.LambdaChat,
-            ]
-            
-            for provider in fallback_providers:
-                try:
-                    logger.info(f"Trying fallback provider: {provider.__name__}")
-                    response = g4f.ChatCompletion.create(
-                        model="deepseek-v3",
-                        provider=provider,
-                        messages=[{"role": "user", "content": prompt}],
-                        timeout=30
-                    )
-                    cleaned_response = re.sub(r'https?://\S+', '', response)
-                    if len(cleaned_response) > 2500:
-                        cleaned_response = cleaned_response[:2500] + "..."
-                    return cleaned_response.strip()
-                except Exception as e2:
-                    logger.error(f"Error with fallback provider {provider.__name__}: {str(e2)}")
-                    continue
-            
-            # Если все запасные провайдеры не сработали, возвращаем ошибку
-            return f"Не удалось выполнить анализ отзывов: {str(e)}"
-        except Exception as e3:
-            return f"Не удалось выполнить анализ отзывов: {str(e3)}"
+            # Пробуем запасной вариант - DeepInfraChat
+            logger.info("Trying fallback provider: DeepInfraChat")
+            response = g4f.ChatCompletion.create(
+                model="o3-mini",
+                provider=Blackbox,
+                messages=[{"role": "user", "content": prompt}],
+                timeout=30
+            )
+            cleaned_response = re.sub(r'https?://\S+', '', response)
+            if len(cleaned_response) > 2500:
+                cleaned_response = cleaned_response[:2500] + "..."
+            return cleaned_response.strip()
+        except Exception as e2:
+            logger.error(f"Error with fallback provider: {str(e2)}")
+            return f"Не удалось выполнить анализ отзывов. Пожалуйста, попробуйте позже."
 
 @bot.message_handler(commands=['start'])
 def start(message):
