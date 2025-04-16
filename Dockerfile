@@ -12,6 +12,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     gcc \
     curl \
+    netcat-traditional \
     && rm -rf /var/lib/apt/lists/*
 
 # Копирование и установка зависимостей
@@ -32,8 +33,16 @@ RUN echo '#!/bin/bash\n\
     fi\n\
     done\n\
     echo "Environment variables OK"\n\
+    \n\
     echo "Starting gunicorn..."\n\
-    exec gunicorn --bind 0.0.0.0:3000 app:app --workers 1 --timeout 120 --log-level debug\n\
+    gunicorn --bind 0.0.0.0:3000 \\\n\
+    --workers 1 \\\n\
+    --timeout 120 \\\n\
+    --log-level debug \\\n\
+    --error-logfile - \\\n\
+    --access-logfile - \\\n\
+    --capture-output \\\n\
+    app:app\n\
     ' > /app/start.sh && chmod +x /app/start.sh
 
 # Команда запуска

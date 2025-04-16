@@ -5,7 +5,19 @@ import telebot
 import os
 import sys
 
+# Инициализация Flask
 app = Flask(__name__)
+logger.info("Flask app initialized")
+
+# Инициализация вебхука при старте
+try:
+    logger.info("Initializing webhook on startup...")
+    bot.remove_webhook()
+    bot.set_webhook(url=WEBHOOK_URL)
+    webhook_info = bot.get_webhook_info()
+    logger.info(f"Webhook status: URL={webhook_info.url}, pending_updates={webhook_info.pending_update_count}")
+except Exception as e:
+    logger.error(f"Failed to initialize webhook: {e}")
 
 # Обработчик вебхуков
 @app.route(WEBHOOK_PATH, methods=['POST'])
@@ -35,7 +47,8 @@ def index():
             'WEBHOOK_HOST': os.getenv('WEBHOOK_HOST'),
             'FIREBASE_PROJECT_ID': bool(os.getenv('FIREBASE_PROJECT_ID')),
             'WEBHOOK_PATH': WEBHOOK_PATH,
-            'WEBHOOK_URL': WEBHOOK_URL
+            'WEBHOOK_URL': WEBHOOK_URL,
+            'PORT': os.getenv('PORT', '3000')
         }
         
         # Проверяем webhook
@@ -107,31 +120,6 @@ def payment_success():
     except Exception as e:
         logger.error(f"Error processing payment success: {str(e)}")
         return "Error processing payment", 500
-
-def init_webhook():
-    """Инициализация вебхука"""
-    try:
-        logger.info("Removing existing webhook...")
-        bot.remove_webhook()
-        
-        logger.info(f"Setting webhook to {WEBHOOK_URL}")
-        bot.set_webhook(url=WEBHOOK_URL)
-        
-        webhook_info = bot.get_webhook_info()
-        if webhook_info.url == WEBHOOK_URL:
-            logger.info("Webhook set successfully")
-            return True
-        else:
-            logger.error(f"Webhook URL mismatch. Expected: {WEBHOOK_URL}, Got: {webhook_info.url}")
-            return False
-    except Exception as e:
-        logger.error(f"Error setting webhook: {str(e)}")
-        return False
-
-@app.before_first_request
-def setup_webhook():
-    logger.info("Setting up webhook before first request...")
-    init_webhook()
 
 if __name__ == "__main__":
     logger.info("Starting Flask server...")
