@@ -1,9 +1,6 @@
 # Базовый образ
 FROM python:3.11-slim
 
-# Явно указываем порт для Timeweb Cloud
-EXPOSE 3000/tcp
-
 # Установка системных зависимостей
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -26,8 +23,11 @@ RUN echo '#!/bin/bash\n\
     echo "Waiting for system initialization (5s)..."\n\
     sleep 5\n\
     echo "Starting application..."\n\
-    exec gunicorn --bind 0.0.0.0:3000 --workers 1 --timeout 120 --log-level debug --access-logfile - --error-logfile - app:app' > /app/start.sh && \
+    exec gunicorn --bind 0.0.0.0:8080 --workers 1 --timeout 120 --log-level debug --access-logfile - --error-logfile - app:app' > /app/start.sh && \
     chmod +x /app/start.sh
+
+# Явно указываем порт, который будет прослушивать приложение
+EXPOSE 8080
 
 # Запуск приложения
 CMD ["/app/start.sh"]
