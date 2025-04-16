@@ -137,17 +137,15 @@ def payment_success():
 def health_check():
     return jsonify({
         'status': 'ok',
-        'port': 8080,
+        'port': 80,
         'timestamp': datetime.datetime.utcnow().isoformat()
     }), 200
 
 # Дополнительный endpoint для проверки порта
 @app.route('/port', methods=['GET'])
 def port_check():
-    port = 8080
-    logger.info(f"Port check requested, running on port: {port}")
     return jsonify({
-        'port': port,
+        'port': 80,
         'server': 'running'
     }), 200
 
@@ -155,7 +153,7 @@ if __name__ == "__main__":
     logger.info("Starting Flask server in development mode...")
     try:
         # Запуск только при прямом вызове python main.py (не через gunicorn)
-        port = 8080
+        port = 80
         logger.info(f"Starting server on port {port}")
         app.run(host='0.0.0.0', port=port, debug=False)
     except Exception as e:
