@@ -2,6 +2,6 @@ name: wb-review-bot
 type: python
 python_version: "3.8"
 from_directory: "."
+run_command: gunicorn --bind 0.0.0.0:8080 main:app
 build_command: pip install -r requirements.txt
-run_command: python app.py
 port: 8080
