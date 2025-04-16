@@ -3,5 +3,5 @@ type: python
 python_version: "3.8"
 from_directory: "."
 build_command: pip install -r requirements.txt
-run_command: python app.py
+run_command: gunicorn --bind 0.0.0.0:8080 app:app
 port: 8080
