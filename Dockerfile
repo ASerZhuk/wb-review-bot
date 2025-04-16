@@ -1,33 +1,30 @@
-# Базовый образ для сборки
-FROM python:3.11-slim as builder
-
-WORKDIR /app
-
-# Установка системных зависимостей для Firebase Admin
-RUN apt-get update && apt-get install -y \
-    gcc \
-    python3-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# Копируем и устанавливаем зависимости
-COPY requirements.txt .
-RUN pip install --user --no-cache-dir -r requirements.txt
-
-# Финальный образ
+# Указываем базовый образ
 FROM python:3.11-slim
 
+# Явно указываем порт для Timeweb Cloud
+EXPOSE 3000/tcp
+
+# Устанавливаем рабочую директорию
 WORKDIR /app
 
-# Копируем зависимости из builder
-COPY --from=builder /root/.local /root/.local
+# Установка необходимых пакетов
+RUN apt-get update && apt-get install -y \
+    gcc \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
-# Копируем файлы проекта
+# Копируем сначала requirements.txt
+COPY requirements.txt .
+
+# Устанавливаем зависимости
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Копируем остальные файлы проекта
 COPY . .
 
-# Переменные окружения
-ENV PATH=/root/.local/bin:$PATH
-ENV WEBHOOK_ENABLED=true
-ENV PORT=3000
+# Создаем .env файл если его нет
+RUN touch .env
 
-# Запуск через gunicorn
-CMD ["gunicorn", "--config", "gunicorn.conf.py", "app:app"]
+# Запуск приложения через gunicorn
+ENTRYPOINT ["gunicorn"]
+CMD ["--bind", "0.0.0.0:3000", "app:app", "--workers", "1", "--timeout", "120"]

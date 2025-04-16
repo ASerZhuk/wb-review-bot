@@ -3,7 +3,7 @@ import json
 import requests
 import re
 import g4f
-from g4f.Provider import Blackbox, DeepInfraChat, You, Bing, GPTalk, HuggingChat
+from g4f.Provider import Blackbox, DeepInfraChat, You, GPTalk, HuggingChat
 from telebot import types
 from firebase_manager import FirebaseManager
 from payment_manager import PaymentManager
@@ -235,7 +235,6 @@ def analyze_reviews(reviews_list):
         Blackbox,
         DeepInfraChat,
         You,
-        Bing,
         GPTalk,
         HuggingChat
     ]
@@ -271,13 +270,12 @@ def start(message):
     try:
         user_id = message.from_user.id
         username = message.from_user.username or "пользователь"
-        first_name = message.from_user.first_name or "пользователь"
         
         # Получаем количество доступных попыток
         attempts = firebase_manager.get_user_attempts(user_id)
         
         welcome_text = (
-            f"👋 Привет, {first_name}!\n\n"
+            f"👋 Привет, {username}!\n\n"
             "Я помогу проанализировать отзывы с Wildberries. "
             "Просто отправь мне ссылку на товар или его артикул.\n\n"
             f"У тебя есть {attempts} попыток для анализа."
