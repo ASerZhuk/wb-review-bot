@@ -1,17 +1,8 @@
-version: '3.8'
+version: '3'
 
 services:
-  bot:
+  web:
     build: .
     ports:
-      - "3000:3000"
-    volumes:
-      - .:/app
-    env_file:
-      - .env
-    restart: always
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3 
+      - "8080:8080"
+    restart: always 

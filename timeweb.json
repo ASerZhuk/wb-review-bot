@@ -1,15 +1,5 @@
 {
     "name": "wb-review-bot",
-    "dockerfile": "Dockerfile",
-    "port": 8080,
-    "env": {
-        "PYTHON_VERSION": "3.11"
-    },
-    "volumes": [],
-    "health_check": {
-        "protocol": "http",
-        "port": 8080,
-        "path": "/health",
-        "timeout": 30
-    }
+    "docker-compose": "docker-compose.yml",
+    "port": 8080
 } 

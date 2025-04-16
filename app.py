@@ -6,6 +6,15 @@ import telebot
 import os
 import sys
 import datetime
+import logging
+
+# Настройка логирования
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    stream=sys.stdout
+)
+logger = logging.getLogger(__name__)
 
 # Инициализация Flask
 app = Flask(__name__)
@@ -141,11 +150,17 @@ def health_check():
         }), 500
 
 if __name__ == "__main__":
-    logger.info("Starting Flask server...")
     try:
+        logger.info("Starting Flask server...")
+        logger.info(f"Python version: {sys.version}")
+        logger.info(f"Current working directory: {os.getcwd()}")
+        logger.info(f"Directory contents: {os.listdir('.')}")
+        
         # Используем порт из переменной окружения или 8080 по умолчанию
         port = int(os.environ.get('PORT', 8080))
-        app.run(host='0.0.0.0', port=port)
+        logger.info(f"Starting server on port {port}")
+        
+        app.run(host='0.0.0.0', port=port, debug=True)
     except Exception as e:
-        logger.error(f"Error starting server: {str(e)}")
-        raise 
+        logger.error(f"Failed to start server: {str(e)}", exc_info=True)
+        sys.exit(1) 
