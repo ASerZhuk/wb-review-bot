@@ -1,6 +1,7 @@
 from flask import Flask, request, abort, redirect, jsonify
 from bot import bot, logger, firebase_manager
 from config import WEBHOOK_URL, WEBHOOK_PATH, WEBAPP_HOST, WEBAPP_PORT
+from flask_cors import CORS
 import telebot
 import os
 import sys
@@ -8,6 +9,7 @@ import datetime
 
 # Инициализация Flask
 app = Flask(__name__)
+CORS(app)  # Включаем CORS для всех маршрутов
 logger.info("Flask app initialized")
 
 # Инициализация вебхука при старте
@@ -126,19 +128,6 @@ def payment_success():
 @app.route('/health', methods=['GET'])
 def health_check():
     try:
-        # Проверяем основные переменные окружения
-        required_env_vars = ['BOT_TOKEN', 'WEBHOOK_HOST', 'FIREBASE_PROJECT_ID']
-        missing_vars = [var for var in required_env_vars if not os.getenv(var)]
-        
-        if missing_vars:
-            return jsonify({
-                'status': 'error',
-                'message': f'Missing environment variables: {", ".join(missing_vars)}'
-            }), 500
-
-        # Проверяем подключение к боту
-        bot.get_me()
-        
         return jsonify({
             'status': 'ok',
             'timestamp': datetime.datetime.utcnow().isoformat(),
@@ -154,7 +143,7 @@ def health_check():
 if __name__ == "__main__":
     logger.info("Starting Flask server...")
     try:
-        app.run(host=WEBAPP_HOST, port=int(os.environ.get('PORT', WEBAPP_PORT)))
+        app.run(host='0.0.0.0', port=int(os.environ.get('PORT', WEBAPP_PORT)))
     except Exception as e:
         logger.error(f"Error starting server: {str(e)}")
         raise 

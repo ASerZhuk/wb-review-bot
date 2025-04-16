@@ -2,9 +2,9 @@ python-telegram-bot==20.7
 firebase-admin==6.3.0
 requests==2.31.0
 g4f==0.3.3.1
-pyTelegramBotAPI==4.15.2
+pyTelegramBotAPI==4.14.0
 python-dotenv==1.0.0
-flask==2.3.3
+flask==3.0.0
 flask-cors==4.0.0
 gunicorn==21.2.0
 brotli==1.0.9 
