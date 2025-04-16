@@ -133,34 +133,20 @@ def payment_success():
         logger.error(f"Error processing payment success: {str(e)}")
         return "Error processing payment", 500
 
-# Простой health check
+# Очень простой health check для Timeweb Cloud
 @app.route('/health', methods=['GET'])
 def health_check():
-    try:
-        return jsonify({
-            'status': 'ok',
-            'timestamp': datetime.datetime.utcnow().isoformat(),
-            'service': 'wb-review-bot'
-        }), 200
-    except Exception as e:
-        logger.error(f"Health check failed: {str(e)}")
-        return jsonify({
-            'status': 'error',
-            'message': str(e)
-        }), 500
+    return jsonify({
+        'status': 'ok',
+        'timestamp': datetime.datetime.utcnow().isoformat()
+    }), 200
 
 if __name__ == "__main__":
+    logger.info("Starting Flask server...")
     try:
-        logger.info("Starting Flask server...")
-        logger.info(f"Python version: {sys.version}")
-        logger.info(f"Current working directory: {os.getcwd()}")
-        logger.info(f"Directory contents: {os.listdir('.')}")
-        
-        # Используем порт из переменной окружения или 8080 по умолчанию
+        # Используем стандартные настройки для Timeweb Cloud
         port = int(os.environ.get('PORT', 8080))
-        logger.info(f"Starting server on port {port}")
-        
-        app.run(host='0.0.0.0', port=port, debug=True)
+        app.run(host='0.0.0.0', port=port, debug=False)
     except Exception as e:
-        logger.error(f"Failed to start server: {str(e)}", exc_info=True)
-        sys.exit(1) 
+        logger.error(f"Error starting server: {str(e)}")
+        raise 
