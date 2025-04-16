@@ -24,7 +24,7 @@ if '//' in WEBHOOK_URL and not WEBHOOK_URL.startswith('http'):
 
 # Конфигурация веб-сервера
 WEBAPP_HOST = '0.0.0.0'
-WEBAPP_PORT = int(os.getenv('PORT', 3000))
+WEBAPP_PORT = int(os.getenv('PORT', 8080))
 
 def get_env_var(name: str, required: bool = True) -> str:
     """Получение переменной окружения с логированием"""

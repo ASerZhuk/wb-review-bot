@@ -1,6 +1,6 @@
 from flask import Flask, request, abort, redirect, jsonify
 from bot import bot, logger, firebase_manager
-from config import WEBHOOK_URL, WEBHOOK_PATH
+from config import WEBHOOK_URL, WEBHOOK_PATH, WEBAPP_HOST, WEBAPP_PORT
 from flask_cors import CORS
 import telebot
 import os
@@ -142,4 +142,7 @@ def health_check():
 
 if __name__ == "__main__":
     logger.info("Starting Flask server...")
-    app.run(host='0.0.0.0', port=8080) 
+    try:
+        app.run(host=WEBAPP_HOST, port=WEBAPP_PORT)
+    except Exception as e:
+        logging.error(f"Failed to start server: {e}") 
