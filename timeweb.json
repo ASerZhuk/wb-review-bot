@@ -9,7 +9,7 @@
     "health_check": {
         "protocol": "http",
         "port": 3000,
-        "path": "/",
-        "timeout": 30
+        "path": "/health",
+        "timeout": 60
     }
 } 

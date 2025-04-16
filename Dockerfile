@@ -21,5 +21,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Копирование кода приложения
 COPY . .
 
+# Создаем скрипт запуска
+RUN echo '#!/bin/bash\n\
+    echo "Waiting for system initialization (5s)..."\n\
+    sleep 5\n\
+    echo "Starting application..."\n\
+    exec gunicorn --bind 0.0.0.0:3000 --workers 1 --timeout 120 --log-level debug --access-logfile - --error-logfile - app:app' > /app/start.sh && \
+    chmod +x /app/start.sh
+
 # Запуск приложения
-CMD ["gunicorn", "--bind", "0.0.0.0:3000", "--workers", "1", "--timeout", "120", "--log-level", "debug", "--access-logfile", "-", "--error-logfile", "-", "app:app"]
+CMD ["/app/start.sh"]

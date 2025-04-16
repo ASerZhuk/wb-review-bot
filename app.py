@@ -4,6 +4,7 @@ from config import WEBHOOK_URL, WEBHOOK_PATH, WEBAPP_HOST, WEBAPP_PORT
 import telebot
 import os
 import sys
+import datetime
 
 # Инициализация Flask
 app = Flask(__name__)
@@ -124,7 +125,31 @@ def payment_success():
 # Простой health check
 @app.route('/health', methods=['GET'])
 def health_check():
-    return jsonify({'status': 'ok'}), 200
+    try:
+        # Проверяем основные переменные окружения
+        required_env_vars = ['BOT_TOKEN', 'WEBHOOK_HOST', 'FIREBASE_PROJECT_ID']
+        missing_vars = [var for var in required_env_vars if not os.getenv(var)]
+        
+        if missing_vars:
+            return jsonify({
+                'status': 'error',
+                'message': f'Missing environment variables: {", ".join(missing_vars)}'
+            }), 500
+
+        # Проверяем подключение к боту
+        bot.get_me()
+        
+        return jsonify({
+            'status': 'ok',
+            'timestamp': datetime.datetime.utcnow().isoformat(),
+            'service': 'wb-review-bot'
+        }), 200
+    except Exception as e:
+        logger.error(f"Health check failed: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
 
 if __name__ == "__main__":
     logger.info("Starting Flask server...")
