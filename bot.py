@@ -3,7 +3,7 @@ import json
 import requests
 import re
 import g4f
-from g4f.Provider import Blackbox, DeepInfraChat, LambdaChat
+from g4f.Provider import Blackbox
 from telebot import types
 from firebase_manager import FirebaseManager
 from payment_manager import PaymentManager
