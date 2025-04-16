@@ -137,12 +137,14 @@ def payment_success():
 def health_check():
     return jsonify({
         'status': 'ok',
+        'port': 8080,
         'timestamp': datetime.datetime.utcnow().isoformat()
     }), 200
 
 if __name__ == "__main__":
-    logger.info("Starting Flask server...")
+    logger.info("Starting Flask server in development mode...")
     try:
-        app.run(host=WEBAPP_HOST, port=WEBAPP_PORT)
+        # Запуск только при прямом вызове python main.py (не через gunicorn)
+        app.run(host='0.0.0.0', port=8080, debug=False)
     except Exception as e:
         logging.error(f"Failed to start server: {e}") 
