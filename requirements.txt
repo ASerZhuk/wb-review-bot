@@ -6,3 +6,4 @@ pyTelegramBotAPI
 python-dotenv
 flask
 flask-cors
+blinker==1.4
