@@ -1,10 +1,5 @@
-python-telegram-bot
+
 firebase-admin
 requests
 g4f
 pyTelegramBotAPI
-python-dotenv
-flask
-flask-cors
-gunicorn
-brotli
