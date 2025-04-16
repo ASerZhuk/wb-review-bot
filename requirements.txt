@@ -1,4 +1,4 @@
-gunicorn==20.1.0
+
 firebase-admin
 requests
 g4f
@@ -6,4 +6,4 @@ pyTelegramBotAPI
 python-dotenv
 flask
 flask-cors
-blinker==1.4
+
