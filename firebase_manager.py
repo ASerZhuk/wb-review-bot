@@ -2,7 +2,6 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 import os
 from datetime import datetime
-from config import FIREBASE_CREDENTIALS_JSON
 import logging
 
 logger = logging.getLogger(__name__)
@@ -11,20 +10,22 @@ class FirebaseManager:
     def __init__(self):
         try:
             logger.info("Starting Firebase initialization...")
-            logger.info(f"Project ID: {FIREBASE_CREDENTIALS_JSON.get('project_id')}")
-            logger.info(f"Client Email: {FIREBASE_CREDENTIALS_JSON.get('client_email')}")
             
             # Проверяем, не инициализирован ли уже Firebase
             if not firebase_admin._apps:
-                # Проверяем наличие всех необходимых полей
-                required_fields = ['type', 'project_id', 'private_key_id', 'private_key', 'client_email']
-                missing_fields = [field for field in required_fields if not FIREBASE_CREDENTIALS_JSON.get(field)]
+                # Пробуем использовать JSON-файл напрямую
+                cred_path = 'serviceAccountKey.json'
                 
-                if missing_fields:
-                    raise ValueError(f"Missing required fields in Firebase credentials: {', '.join(missing_fields)}")
+                if os.path.exists(cred_path):
+                    logger.info(f"Using credentials from {cred_path}")
+                    cred = credentials.Certificate(cred_path)
+                else:
+                    # Если файл не найден, используем переменные окружения
+                    logger.info(f"Credentials file not found, using environment variables")
+                    from config import load_firebase_credentials
+                    firebase_creds = load_firebase_credentials()
+                    cred = credentials.Certificate(firebase_creds)
                 
-                logger.info("Creating Firebase credentials...")
-                cred = credentials.Certificate(FIREBASE_CREDENTIALS_JSON)
                 logger.info("Initializing Firebase app...")
                 firebase_admin.initialize_app(cred)
                 logger.info("Firebase app initialized successfully")
@@ -36,12 +37,6 @@ class FirebaseManager:
             
         except Exception as e:
             logger.error(f"Firebase initialization error: {str(e)}")
-            logger.error("Firebase credentials:")
-            for key, value in FIREBASE_CREDENTIALS_JSON.items():
-                if key != 'private_key':
-                    logger.error(f"{key}: {value}")
-                else:
-                    logger.error(f"private_key length: {len(str(value))}")
             raise
 
     def get_user_attempts(self, user_id: int) -> int:
@@ -93,4 +88,34 @@ class FirebaseManager:
             'total_purchased': total_purchased + amount,
             'last_purchase': datetime.now(),
             'updated_at': datetime.now()
-        }, merge=True) 
+        }, merge=True)
+
+    def get_price(self) -> float:
+        """Получает текущую цену за 10 попыток из Firebase"""
+        try:
+            price_doc = self.db.collection('settings').document('prices').get()
+            if price_doc.exists:
+                return float(price_doc.to_dict().get('attempts_10', 100))
+            else:
+                # Если документ не существует, создаем его с ценой по умолчанию
+                self.db.collection('settings').document('prices').set({
+                    'attempts_10': 100,
+                    'created_at': datetime.now()
+                })
+                return 100.0
+        except Exception as e:
+            logger.error(f"Error getting price: {str(e)}")
+            return 100.0  # Возвращаем цену по умолчанию в случае ошибки
+
+    def update_price(self, new_price: float) -> bool:
+        """Обновляет цену за 10 попыток в Firebase"""
+        try:
+            self.db.collection('settings').document('prices').set({
+                'attempts_10': float(new_price),
+                'updated_at': datetime.now()
+            }, merge=True)
+            logger.info(f"Price updated to {new_price}")
+            return True
+        except Exception as e:
+            logger.error(f"Error updating price: {str(e)}")
+            return False 

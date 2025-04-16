@@ -3,28 +3,21 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.so
-.Python
-env/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# Virtual Environment
 venv/
-ENV/
+env/
+.venv/
+.env/
+.Python
+.env
 
-# IDE
+# Файлы с учетными данными
+serviceAccountKey.json
+*firebase-adminsdk*.json
+
+# Логи
+*.log
+
+# Локальные настройки IDE
 .idea/
 .vscode/
 *.swp
@@ -33,6 +26,15 @@ ENV/
 # OS
 .DS_Store
 Thumbs.db
+
+# Virtual Environment
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
 
 # Environment variables
 .env

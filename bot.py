@@ -3,6 +3,7 @@ import json
 import requests
 import re
 import g4f
+from g4f.Provider import Blackbox, DeepInfraChat, LambdaChat
 from telebot import types
 from firebase_manager import FirebaseManager
 from payment_manager import PaymentManager
@@ -23,6 +24,8 @@ try:
     firebase_manager = FirebaseManager()
     logger.info("Initializing Payment Manager...")
     payment_manager = PaymentManager()
+    # Устанавливаем связь между менеджерами
+    payment_manager.set_firebase_manager(firebase_manager)
     logger.info("Managers initialized successfully")
 except Exception as e:
     logger.error(f"Error initializing managers: {str(e)}")
@@ -30,6 +33,7 @@ except Exception as e:
 
 # Добавим список админов (укажите нужные ID)
 ADMIN_IDS = [1312244058]  # Замените на реальные ID администраторов
+logger.info(f"Admin IDs: {ADMIN_IDS}")
 
 # Функция для разделения длинных сообщений
 def split_long_message(text, max_length=3000):
@@ -153,10 +157,10 @@ def analyze_reviews(reviews_list):
     """
     
     try:
-        # Используем провайдера Blackbox и модель deepseek
+        # Используем провайдера Blackbox и модель deepseek-v3
         response = g4f.ChatCompletion.create(
-            model="deepseek",
-            provider=g4f.Provider.Blackbox,
+            model="deepseek-v3",
+            provider=Blackbox,  # Используем явно импортированный провайдер
             messages=[{"role": "user", "content": prompt}],
             timeout=60  # Увеличиваем таймаут для надежности
         )
@@ -167,21 +171,19 @@ def analyze_reviews(reviews_list):
             cleaned_response = cleaned_response[:2500] + "..."
         return cleaned_response.strip()
     except Exception as e:
-        logger.error(f"Error with Blackbox/deepseek: {str(e)}")
+        logger.error(f"Error with Blackbox/deepseek-v3: {str(e)}")
         try:
             # Пробуем запасной вариант - другие провайдеры
             fallback_providers = [
-                g4f.Provider.DeepAi,
-                g4f.Provider.GptGo,
-                g4f.Provider.You,
-                g4f.Provider.ChatBase
+                g4f.Provider.DeepInfraChat,
+                g4f.Provider.LambdaChat,
             ]
             
             for provider in fallback_providers:
                 try:
                     logger.info(f"Trying fallback provider: {provider.__name__}")
                     response = g4f.ChatCompletion.create(
-                        model="gpt-3.5-turbo",
+                        model="deepseek-v3",
                         provider=provider,
                         messages=[{"role": "user", "content": prompt}],
                         timeout=30
@@ -228,11 +230,11 @@ def start(message):
             welcome_text += f"\n\n{payment_msg}"
         
         logger.info(f"Sending welcome message to user {user_id}")
-        bot.reply_to(message, welcome_text, reply_markup=markup)
+        bot.send_message(message.chat.id, welcome_text, reply_markup=markup)
         
     except Exception as e:
         logger.error(f"Error in start handler: {str(e)}")
-        bot.reply_to(message, "Произошла ошибка при запуске бота. Пожалуйста, попробуйте позже.")
+        bot.send_message(message.chat.id, "Произошла ошибка при запуске бота. Пожалуйста, попробуйте позже.")
 
 # Добавим обработчик callback-запросов
 @bot.callback_query_handler(func=lambda call: True)
@@ -280,15 +282,45 @@ def process_new_price(message):
         # Например, через PaymentManager или Firebase
         payment_manager.update_price(new_price)  # Предполагается, что такой метод существует
         
-        bot.reply_to(message, f"✅ Цена успешно обновлена до {new_price} рублей за 10 попыток")
+        bot.send_message(message.chat.id, f"✅ Цена успешно обновлена до {new_price} рублей за 10 попыток")
         # Показываем стартовое меню
         start(message)
     except ValueError:
-        bot.reply_to(message, "❌ Пожалуйста, введите корректное число")
+        bot.send_message(message.chat.id, "❌ Пожалуйста, введите корректное число")
         start(message)
 
+@bot.message_handler(commands=['admin'])
+def admin_command(message):
+    """Обработчик команды /admin для вызова админ-панели"""
+    user_id = message.from_user.id
+    logger.info(f"Admin command received from user {user_id}")
+    
+    # Проверяем, является ли пользователь администратором
+    if user_id in ADMIN_IDS:
+        logger.info(f"User {user_id} is in admin list, showing admin panel")
+        # Создаем клавиатуру с административными функциями
+        markup = types.InlineKeyboardMarkup()
+        change_price_button = types.InlineKeyboardButton("💰 Изменить цену за 10 попыток", callback_data="change_price")
+        markup.add(change_price_button)
+        
+        bot.send_message(
+            message.chat.id,
+            "⚙️ Админ-панель\n\nВыберите действие:",
+            reply_markup=markup
+        )
+    else:
+        logger.info(f"User {user_id} is NOT in admin list {ADMIN_IDS}")
+        # Если пользователь не администратор, отправляем сообщение об ошибке доступа
+        bot.send_message(message.chat.id, "❌ У вас нет доступа к административной панели.")
+
+@bot.message_handler(commands=['myid'])
+def my_id_command(message):
+    """Показывает пользователю его ID"""
+    user_id = message.from_user.id
+    bot.send_message(message.chat.id, f"Ваш ID: {user_id}")
+
 # Обновим существующий обработчик сообщений, добавив проверку на состояние
-@bot.message_handler(func=lambda message: True)
+@bot.message_handler(func=lambda message: not message.text.startswith('/'))
 def handle_message(message):
     if message.text.isdigit() or 'wildberries' in message.text.lower():
         user_id = message.from_user.id
@@ -306,16 +338,16 @@ def handle_message(message):
             )
             markup.add(payment_button)
             
-            bot.reply_to(
-                message,
+            bot.send_message(
+                message.chat.id,
                 payment_msg,
                 reply_markup=markup
             )
             return
         
         # Отправка сообщения о начале анализа
-        processing_msg = bot.reply_to(
-            message, 
+        processing_msg = bot.send_message(
+            message.chat.id, 
             f"⏳ Анализирую отзывы... Это может занять некоторое время.\n"
             f"У вас осталось попыток: {attempts}"
         )
@@ -337,11 +369,8 @@ def handle_message(message):
             # Уменьшаем количество попыток
             remaining_attempts = firebase_manager.decrease_attempts(user_id)
             
-            # Добавляем информацию об оставшихся попытках
-            analysis_with_attempts = (
-                f"{analysis}\n\n"
-                f"Осталось попыток: {remaining_attempts}"
-            )
+            # Не добавляем информацию об оставшихся попытках в сообщение с анализом
+            analysis_with_attempts = analysis
             
             # Разбиваем сообщение, если оно слишком длинное
             message_parts = split_long_message(analysis_with_attempts)
@@ -361,27 +390,18 @@ def handle_message(message):
                 # Добавляем обработку ошибок при отправке каждой части
                 for i, part in enumerate(message_parts):
                     try:
-                        if i == 0:
-                            header = "📊 Анализ отзывов (часть 1 из {})\n\n".format(len(message_parts))
-                            # Проверяем длину сообщения перед отправкой
-                            if len(header + part) > 4000:
-                                shortened_part = part[:3950 - len(header)] + "..."
-                                bot.send_message(message.chat.id, header + shortened_part)
-                            else:
-                                bot.send_message(message.chat.id, header + part)
+                        # Отправляем части без заголовков
+                        # Проверяем длину сообщения перед отправкой
+                        if len(part) > 4000:
+                            shortened_part = part[:3950] + "..."
+                            bot.send_message(message.chat.id, shortened_part)
                         else:
-                            header = "📊 Анализ отзывов (часть {} из {})\n\n".format(i+1, len(message_parts))
-                            # Проверяем длину сообщения перед отправкой
-                            if len(header + part) > 4000:
-                                shortened_part = part[:3950 - len(header)] + "..."
-                                bot.send_message(message.chat.id, header + shortened_part)
-                            else:
-                                bot.send_message(message.chat.id, header + part)
+                            bot.send_message(message.chat.id, part)
                     except Exception as e:
                         logger.error(f"Error sending message part {i+1}: {str(e)}")
                         bot.send_message(
                             message.chat.id, 
-                            f"⚠️ Не удалось отправить часть {i+1} анализа из-за ошибки: {str(e)}"
+                            f"⚠️ Не удалось отправить часть анализа из-за ошибки: {str(e)}"
                         )
             
         except Exception as e:
@@ -390,7 +410,7 @@ def handle_message(message):
                                 chat_id=message.chat.id,
                                 message_id=processing_msg.message_id)
     else:
-        bot.reply_to(message, "❌ Пожалуйста, отправьте корректную ссылку на товар с Wildberries или артикул товара.")
+        bot.send_message(message.chat.id, "❌ Пожалуйста, отправьте корректную ссылку на товар с Wildberries или артикул товара.")
 
 if __name__ == '__main__':
     logger.info("Starting bot...")
