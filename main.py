@@ -8,6 +8,11 @@ import sys
 import datetime
 import logging
 
+# Явное указание порта для Timeweb Cloud
+PORT = 80
+print(f"Starting application on port: {PORT}")
+sys.stdout.flush()
+
 # Настройка логирования
 logging.basicConfig(
     level=logging.INFO,
@@ -15,6 +20,7 @@ logging.basicConfig(
     stream=sys.stdout
 )
 logger = logging.getLogger(__name__)
+logger.info(f"Application configured to run on port: {PORT}")
 
 # Инициализация Flask
 app = Flask(__name__)

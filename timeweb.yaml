@@ -1,8 +1,5 @@
 name: wb-review-bot
-type: python
-python_version: "3.8"
-from_directory: .
-run_command: gunicorn main:app --timeout 60 --bind 0.0.0.0:80
-build_command: pip install -r requirements.txt
+type: dockerfile
+dockerfile: Dockerfile
 port: 80
 health_check_url: /health
