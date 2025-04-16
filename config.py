@@ -57,17 +57,24 @@ def load_firebase_credentials():
         
         # Если файл не найден, используем переменные окружения
         logger.info("Using Firebase credentials from environment variables")
+        
+        # Получение приватного ключа с корректной обработкой escape-последовательностей
+        private_key = os.getenv('FIREBASE_PRIVATE_KEY', '')
+        # Замена литеральных '\n' на реальные переносы строк, если их нет
+        if '\\n' in private_key and '\n' not in private_key:
+            private_key = private_key.replace('\\n', '\n')
+            
         return {
             "type": os.getenv('FIREBASE_TYPE', 'service_account'),
             "project_id": get_env_var('FIREBASE_PROJECT_ID'),
             "private_key_id": get_env_var('FIREBASE_PRIVATE_KEY_ID'),
-            "private_key": get_env_var('FIREBASE_PRIVATE_KEY'),
+            "private_key": private_key,
             "client_email": get_env_var('FIREBASE_CLIENT_EMAIL'),
-            "client_id": get_env_var('FIREBASE_CLIENT_ID'),
+            "client_id": os.getenv('FIREBASE_CLIENT_ID', ''),
             "auth_uri": os.getenv('FIREBASE_AUTH_URI', "https://accounts.google.com/o/oauth2/auth"),
             "token_uri": os.getenv('FIREBASE_TOKEN_URI', "https://oauth2.googleapis.com/token"),
             "auth_provider_x509_cert_url": os.getenv('FIREBASE_AUTH_PROVIDER_X509_CERT_URL', "https://www.googleapis.com/oauth2/v1/certs"),
-            "client_x509_cert_url": get_env_var('FIREBASE_CLIENT_X509_CERT_URL'),
+            "client_x509_cert_url": os.getenv('FIREBASE_CLIENT_X509_CERT_URL', ''),
             "universe_domain": os.getenv('FIREBASE_UNIVERSE_DOMAIN', "googleapis.com")
         }
     except Exception as e:

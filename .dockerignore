@@ -10,4 +10,6 @@ venv/
 ENV/
 .idea/
 .vscode/
-*.log 
+*.log
+serviceAccountKey.json
+*firebase-adminsdk*.json 

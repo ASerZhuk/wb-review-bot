@@ -3,3 +3,10 @@ type: dockerfile
 dockerfile: Dockerfile
 port: 80
 health_check_url: /health
+envs:
+  PORT: 80
+  FIREBASE_TYPE: service_account
+  FIREBASE_AUTH_URI: https://accounts.google.com/o/oauth2/auth
+  FIREBASE_TOKEN_URI: https://oauth2.googleapis.com/token
+  FIREBASE_AUTH_PROVIDER_X509_CERT_URL: https://www.googleapis.com/oauth2/v1/certs
+  FIREBASE_UNIVERSE_DOMAIN: googleapis.com

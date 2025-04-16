@@ -1,6 +1,6 @@
 FROM python:3.8-slim
 
-WORKDIR /
+WORKDIR /app
 
 # Копируем зависимости для установки
 COPY requirements.txt .
@@ -10,6 +10,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Копируем код приложения
 COPY . .
+
+# Переменные окружения будут загружены из .env файла через python-dotenv
 
 # Указываем порт, который будет прослушивать приложение
 EXPOSE 80
