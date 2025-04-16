@@ -10,10 +10,37 @@ from payment_manager import PaymentManager
 import os
 from flask import Flask
 import logging
+import random
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Список User-Agent для ротации
+USER_AGENTS = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 17_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3.1 Mobile/15E148 Safari/604.1'
+]
+
+def get_random_headers():
+    """Генерирует случайные заголовки для запроса"""
+    return {
+        'User-Agent': random.choice(USER_AGENTS),
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+        'Accept-Language': 'ru-RU,ru;q=0.8,en-US;q=0.5,en;q=0.3',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'DNT': '1',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1',
+        'Cache-Control': 'max-age=0'
+    }
 
 # Инициализация бота
 bot = telebot.TeleBot(os.getenv('BOT_TOKEN'))
@@ -84,12 +111,23 @@ class WbReview:
     def get_root_id(self):
         """Получение id родителя и названия товара"""
         try:
+            headers = get_random_headers()
             response = requests.get(
                 f'https://card.wb.ru/cards/v2/detail?appType=1&curr=rub&dest=-8144334&spp=30&nm={self.sku}',
-                headers={'User-Agent': 'Mozilla/5.0'},
+                headers=headers,
+                timeout=10
             )
+            if response.status_code == 403:
+                # Пробуем еще раз с другими заголовками
+                headers = get_random_headers()
+                response = requests.get(
+                    f'https://card.wb.ru/cards/v2/detail?appType=1&curr=rub&dest=-8144334&spp=30&nm={self.sku}',
+                    headers=headers,
+                    timeout=10
+                )
+            
             if response.status_code != 200:
-                raise Exception("Не удалось определить id родителя")
+                raise Exception(f"Не удалось определить id родителя. Код ответа: {response.status_code}")
             
             data = response.json()
             if not data.get("data") or not data["data"].get("products") or len(data["data"]["products"]) == 0:
@@ -102,7 +140,7 @@ class WbReview:
                 raise Exception("Не удалось получить root_id товара")
             return self.root_id
         except Exception as e:
-            print(f"Error in get_root_id: {str(e)}")  # Для отладки
+            logger.error(f"Error in get_root_id: {str(e)}")
             raise Exception(f"Ошибка при получении информации о товаре: {str(e)}")
 
     def get_review(self) -> json:
@@ -110,18 +148,41 @@ class WbReview:
         if not self.root_id:
             raise Exception("root_id не установлен")
             
+        headers = get_random_headers()
         try:
-            response = requests.get(f'https://feedbacks1.wb.ru/feedbacks/v1/{self.root_id}', 
-                                  headers={'User-Agent': 'Mozilla/5.0'})
+            response = requests.get(
+                f'https://feedbacks1.wb.ru/feedbacks/v1/{self.root_id}',
+                headers=headers,
+                timeout=10
+            )
+            if response.status_code == 403:
+                # Пробуем с другими заголовками
+                headers = get_random_headers()
+                response = requests.get(
+                    f'https://feedbacks1.wb.ru/feedbacks/v1/{self.root_id}',
+                    headers=headers,
+                    timeout=10
+                )
+            
             if response.status_code == 200:
-                if not response.json()["feedbacks"]:
+                if not response.json().get("feedbacks"):
                     raise Exception("Сервер 1 не подошел")
                 return response.json()
-        except Exception:
-            response = requests.get(f'https://feedbacks2.wb.ru/feedbacks/v1/{self.root_id}', 
-                                  headers={'User-Agent': 'Mozilla/5.0'})
+            
+            # Пробуем второй сервер
+            headers = get_random_headers()
+            response = requests.get(
+                f'https://feedbacks2.wb.ru/feedbacks/v1/{self.root_id}',
+                headers=headers,
+                timeout=10
+            )
             if response.status_code == 200:
                 return response.json()
+            else:
+                raise Exception(f"Не удалось получить отзывы. Код ответа: {response.status_code}")
+        except Exception as e:
+            logger.error(f"Error in get_review: {str(e)}")
+            raise Exception(f"Ошибка при получении отзывов: {str(e)}")
 
     def parse(self):
         json_feedbacks = self.get_review()
@@ -194,12 +255,13 @@ def start(message):
     try:
         user_id = message.from_user.id
         username = message.from_user.username or "пользователь"
+        first_name = message.from_user.first_name or "пользователь"
         
         # Получаем количество доступных попыток
         attempts = firebase_manager.get_user_attempts(user_id)
         
         welcome_text = (
-            f"👋 Привет, {username}!\n\n"
+            f"👋 Привет, {first_name}!\n\n"
             "Я помогу проанализировать отзывы с Wildberries. "
             "Просто отправь мне ссылку на товар или его артикул.\n\n"
             f"У тебя есть {attempts} попыток для анализа."
