@@ -3,7 +3,7 @@ import json
 import requests
 import re
 import g4f
-from g4f.Provider import Blackbox, DeepInfraChat
+from g4f.Provider import Blackbox, DDG, PollinationsAI
 from telebot import types
 from database_manager import DatabaseManager  # Changed from FirebaseManager
 from payment_manager import PaymentManager
@@ -252,7 +252,8 @@ def analyze_reviews(reviews_list):
     # Список провайдеров для попытки
     providers = [
         Blackbox,
-        DeepInfraChat,
+        DDG, 
+        PollinationsAI
         
     ]
     
@@ -261,7 +262,7 @@ def analyze_reviews(reviews_list):
         try:
             logger.info(f"Trying provider {provider.__name__}")
             response = g4f.ChatCompletion.create(
-                model="deepseek-v3",  # Используем только модель deepseek-v3
+                model="dgpt-4o-mini",  # Используем только модель deepseek-v3
                 provider=provider,
                 messages=[{"role": "user", "content": prompt}],
                 timeout=60
