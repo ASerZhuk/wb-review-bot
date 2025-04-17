@@ -181,7 +181,7 @@ class WbReview:
                 time.sleep(random.uniform(4, 8))  # Увеличено время ожидания
                 headers = get_random_headers()
                 response = requests.get(
-                    f'https://feedbacks1.wb.ru/feedbacks/v1/{self.root_id}',
+                    f'https://feedbacks2.wb.ru/feedbacks/v1/{self.root_id}',
                     headers=headers,
                     timeout=15
                 )
@@ -195,7 +195,7 @@ class WbReview:
             time.sleep(random.uniform(4, 8))
             headers = get_random_headers()
             response = requests.get(
-                f'https://feedbacks1.wb.ru/feedbacks/v2/{self.root_id}',
+                f'https://feedbacks2.wb.ru/feedbacks/v1/{self.root_id}',
                 headers=headers,
                 timeout=15
             )
