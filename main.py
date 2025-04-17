@@ -1,6 +1,7 @@
 from flask import Flask, request, abort, redirect, jsonify
 from bot import bot, logger
 from config import WEBHOOK_URL, WEBHOOK_PATH
+from database_manager import DatabaseManager
 from flask_cors import CORS
 import telebot
 import os
@@ -123,7 +124,7 @@ def payment_success():
     try:
         # Добавляем попытки пользователю
         user_id = int(user_id)
-        firebase_manager.add_attempts(user_id, 10)
+        DatabaseManager.add_attempts(user_id, 10)
         
         # Отправляем сообщение пользователю
         bot.send_message(

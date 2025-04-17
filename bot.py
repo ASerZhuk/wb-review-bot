@@ -92,9 +92,8 @@ def split_long_message(text, max_length=3000):
 class WbReview:
     def __init__(self, string: str):
         self.sku = self.get_sku(string=string)
-        self.item_name = None  # Инициализируем как None
+        self.item_name = None
         self.root_id = None
-        # Получаем root_id и item_name
         self.get_root_id()
 
     @staticmethod
@@ -112,23 +111,30 @@ class WbReview:
     def get_root_id(self):
         """Получение id родителя и названия товара"""
         try:
-            # Добавляем случайную задержку
-            time.sleep(random.uniform(1, 3))
+            # Увеличиваем задержку между запросами
+            time.sleep(random.uniform(2, 5))  # Увеличено с 1-3 до 2-5 секунд
             
             headers = get_random_headers()
             response = requests.get(
                 f'https://card.wb.ru/cards/v2/detail?appType=1&curr=rub&dest=-8144334&spp=30&nm={self.sku}',
                 headers=headers,
-                timeout=10
+                timeout=15  # Увеличено время ожидания
             )
+            
+            # Обработка ошибки 429 (Too Many Requests)
+            if response.status_code == 429:
+                retry_after = int(response.headers.get('Retry-After', 30))
+                logger.warning(f"Rate limit exceeded. Waiting {retry_after} seconds...")
+                time.sleep(retry_after + 5)  # Добавляем дополнительное время
+                return self.get_root_id()  # Рекурсивный повтор запроса
+            
             if response.status_code == 403:
-                # Пробуем еще раз с другими заголовками после задержки
-                time.sleep(random.uniform(2, 4))
+                time.sleep(random.uniform(3, 6))  # Увеличено время ожидания
                 headers = get_random_headers()
                 response = requests.get(
                     f'https://card.wb.ru/cards/v2/detail?appType=1&curr=rub&dest=-8144334&spp=30&nm={self.sku}',
                     headers=headers,
-                    timeout=10
+                    timeout=15
                 )
             
             if response.status_code != 200:
@@ -153,24 +159,31 @@ class WbReview:
         if not self.root_id:
             raise Exception("root_id не установен")
             
-        # Добавляем случайную задержку
-        time.sleep(random.uniform(1, 3))
-        
-        headers = get_random_headers()
         try:
+            # Увеличиваем задержку между запросами
+            time.sleep(random.uniform(3, 6))  # Увеличено с 1-3 до 3-6 секунд
+            
+            headers = get_random_headers()
             response = requests.get(
                 f'https://feedbacks1.wb.ru/feedbacks/v1/{self.root_id}',
                 headers=headers,
-                timeout=10
+                timeout=15
             )
+            
+            # Обработка ошибки 429 (Too Many Requests)
+            if response.status_code == 429:
+                retry_after = int(response.headers.get('Retry-After', 30))
+                logger.warning(f"Rate limit exceeded. Waiting {retry_after} seconds...")
+                time.sleep(retry_after + 5)  # Добавляем дополнительное время
+                return self.get_review()  # Рекурсивный повтор запроса
+            
             if response.status_code == 403:
-                # Пробуем с другими заголовками после задержки
-                time.sleep(random.uniform(2, 4))
+                time.sleep(random.uniform(4, 8))  # Увеличено время ожидания
                 headers = get_random_headers()
                 response = requests.get(
                     f'https://feedbacks1.wb.ru/feedbacks/v1/{self.root_id}',
                     headers=headers,
-                    timeout=10
+                    timeout=15
                 )
             
             if response.status_code == 200:
@@ -179,13 +192,14 @@ class WbReview:
                 return response.json()
             
             # Пробуем второй сервер после задержки
-            time.sleep(random.uniform(2, 4))
+            time.sleep(random.uniform(4, 8))
             headers = get_random_headers()
             response = requests.get(
                 f'https://feedbacks1.wb.ru/feedbacks/v2/{self.root_id}',
                 headers=headers,
-                timeout=10
+                timeout=15
             )
+            
             if response.status_code == 200:
                 return response.json()
             else:
@@ -195,14 +209,19 @@ class WbReview:
             raise Exception(f"Ошибка при получении отзывов: {str(e)}")
 
     def parse(self):
-        json_feedbacks = self.get_review()
-        if not json_feedbacks:
-            return []
-        feedbacks = [feedback.get("text") for feedback in json_feedbacks["feedbacks"]
-                     if str(feedback.get("nmId")) == self.sku]
-        if len(feedbacks) > 80:
-            feedbacks = feedbacks[:80]
-        return feedbacks
+        try:
+            json_feedbacks = self.get_review()
+            if not json_feedbacks:
+                return []
+                
+            feedbacks = [feedback.get("text") for feedback in json_feedbacks["feedbacks"]
+                         if str(feedback.get("nmId")) == self.sku]
+            if len(feedbacks) > 80:
+                feedbacks = feedbacks[:80]
+            return feedbacks
+        except Exception as e:
+            logger.error(f"Error in parse: {str(e)}")
+            raise Exception(f"Ошибка при обработке отзывов: {str(e)}")
 
 def analyze_reviews(reviews_list):
     """Анализирует отзывы с помощью G4F"""
