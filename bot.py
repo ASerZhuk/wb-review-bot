@@ -262,7 +262,7 @@ def analyze_reviews(reviews_list):
         try:
             logger.info(f"Trying provider {provider.__name__}")
             response = g4f.ChatCompletion.create(
-                model="dgpt-4o-mini",  # Используем только модель deepseek-v3
+                model="gpt-4o-mini",
                 provider=provider,
                 messages=[{"role": "user", "content": prompt}],
                 timeout=60
