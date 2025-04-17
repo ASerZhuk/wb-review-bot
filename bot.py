@@ -3,7 +3,7 @@ import json
 import requests
 import re
 import g4f
-from g4f.Provider import Blackbox, DeepInfraChat, You, GPTalk, HuggingChat
+from g4f.Provider import Blackbox, DeepInfraChat
 from telebot import types
 from database_manager import DatabaseManager  # Changed from FirebaseManager
 from payment_manager import PaymentManager
@@ -253,9 +253,7 @@ def analyze_reviews(reviews_list):
     providers = [
         Blackbox,
         DeepInfraChat,
-        You,
-        GPTalk,
-        HuggingChat
+        
     ]
     
     last_error = None
