@@ -5,7 +5,7 @@ import re
 import g4f
 from g4f.Provider import Blackbox, DeepInfraChat, You, GPTalk, HuggingChat
 from telebot import types
-from firebase_manager import FirebaseManager
+from database_manager import DatabaseManager  # Changed from FirebaseManager
 from payment_manager import PaymentManager
 import os
 from flask import Flask
@@ -48,12 +48,12 @@ bot = telebot.TeleBot(os.getenv('BOT_TOKEN'))
 
 try:
     # Инициализация менеджеров
-    logger.info("Initializing Firebase Manager...")
-    firebase_manager = FirebaseManager()
+    logger.info("Initializing Database Manager...")
+    database_manager = DatabaseManager()  # Changed from FirebaseManager
     logger.info("Initializing Payment Manager...")
     payment_manager = PaymentManager()
     # Устанавливаем связь между менеджерами
-    payment_manager.set_firebase_manager(firebase_manager)
+    payment_manager.set_database_manager(database_manager)  # Changed from set_firebase_manager
     logger.info("Managers initialized successfully")
 except Exception as e:
     logger.error(f"Error initializing managers: {str(e)}")
@@ -151,7 +151,7 @@ class WbReview:
     def get_review(self) -> json:
         """Получение отзывов"""
         if not self.root_id:
-            raise Exception("root_id не установлен")
+            raise Exception("root_id не установен")
             
         # Добавляем случайную задержку
         time.sleep(random.uniform(1, 3))
@@ -272,7 +272,7 @@ def start(message):
         username = message.from_user.username or "пользователь"
         
         # Получаем количество доступных попыток
-        attempts = firebase_manager.get_user_attempts(user_id)
+        attempts = database_manager.get_user_attempts(user_id)  # Changed from firebase_manager
         
         welcome_text = (
             f"👋 Привет, {username}!\n\n"
@@ -342,9 +342,7 @@ def ask_new_price(message):
 def process_new_price(message):
     try:
         new_price = float(message.text)
-        # Здесь добавьте код для сохранения новой цены в вашей системе
-        # Например, через PaymentManager или Firebase
-        payment_manager.update_price(new_price)  # Предполагается, что такой метод существует
+        payment_manager.update_price(new_price)  # Теперь работает с SQLite
         
         bot.send_message(message.chat.id, f"✅ Цена успешно обновлена до {new_price} рублей за 10 попыток")
         # Показываем стартовое меню
@@ -391,7 +389,7 @@ def handle_message(message):
         text = message.text
         
         # Проверка количества попыток
-        attempts = firebase_manager.get_user_attempts(user_id)
+        attempts = database_manager.get_user_attempts(user_id)  # Changed from firebase_manager
         if attempts <= 0:
             # Создаем клавиатуру с кнопкой оплаты
             markup = types.InlineKeyboardMarkup()
@@ -431,7 +429,7 @@ def handle_message(message):
             analysis = analyze_reviews(reviews)
             
             # Уменьшаем количество попыток
-            remaining_attempts = firebase_manager.decrease_attempts(user_id)
+            remaining_attempts = database_manager.decrease_attempts(user_id)  # Changed from firebase_manager
             
             # Не добавляем информацию об оставшихся попытках в сообщение с анализом
             analysis_with_attempts = analysis
@@ -486,4 +484,4 @@ if __name__ == '__main__':
         # Если вебхуки выключены, используем polling
         logger.info("Starting polling mode")
         bot.remove_webhook()
-        bot.polling(none_stop=True) 
+        bot.polling(none_stop=True)

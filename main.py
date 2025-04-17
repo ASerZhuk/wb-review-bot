@@ -1,6 +1,6 @@
 from flask import Flask, request, abort, redirect, jsonify
-from bot import bot, logger, firebase_manager
-from config import WEBHOOK_URL, WEBHOOK_PATH, WEBAPP_HOST, WEBAPP_PORT
+from bot import bot, logger
+from config import WEBHOOK_URL, WEBHOOK_PATH
 from flask_cors import CORS
 import telebot
 import os
@@ -143,7 +143,7 @@ def payment_success():
 def health_check():
     return jsonify({
         'status': 'ok',
-        'port': 80,
+        'port': 8080,
         'timestamp': datetime.datetime.utcnow().isoformat()
     }), 200
 
@@ -151,7 +151,7 @@ def health_check():
 @app.route('/port', methods=['GET'])
 def port_check():
     return jsonify({
-        'port': 80,
+        'port': 8080,
         'server': 'running'
     }), 200
 
@@ -159,7 +159,7 @@ if __name__ == "__main__":
     logger.info("Starting Flask server in development mode...")
     try:
         # Запуск только при прямом вызове python main.py (не через gunicorn)
-        port = 80
+        port = 8080
         logger.info(f"Starting server on port {port}")
         app.run(host='0.0.0.0', port=port, debug=False)
     except Exception as e:

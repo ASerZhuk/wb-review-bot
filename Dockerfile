@@ -1,4 +1,4 @@
-FROM python:3.10
+FROM python:3.8-slim
 
 WORKDIR /app
 
@@ -14,7 +14,7 @@ COPY . .
 # Переменные окружения будут загружены из .env файла через python-dotenv
 
 # Указываем порт, который будет прослушивать приложение
-EXPOSE 80
+EXPOSE 8080
 
 # Команда для запуска приложения
-CMD ["gunicorn", "--bind", "0.0.0.0:80", "main:app"] 
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "main:app"] 

@@ -5,19 +5,20 @@ class PaymentManager:
     def __init__(self):
         self.wallet = "4100117527556990"  # Номер кошелька ЮMoney
         self.amount = 100  # Начальная цена за 10 попыток (по умолчанию)
-        # Ссылка на FirebaseManager будет установлена позже
-        self.firebase_manager = None
+        self.database_manager = None
 
-    def set_firebase_manager(self, firebase_manager):
-        """Устанавливает ссылку на FirebaseManager и загружает актуальную цену"""
-        self.firebase_manager = firebase_manager
-        # Загружаем актуальную цену из Firebase, если возможно
+    def set_database_manager(self, database_manager):
+        """Устанавливает ссылку на DatabaseManager и загружает актуальную цену"""
+        self.database_manager = database_manager
+        # Загружаем актуальную цену из базы данных
         try:
-            price_from_db = self.firebase_manager.get_price()
+            price_from_db = self.database_manager.get_price()
             if price_from_db and price_from_db > 0:
                 self.amount = price_from_db
         except Exception as e:
-            print(f"Error loading price from Firebase: {str(e)}")
+            print(f"Error loading price from database: {str(e)}")
+
+    # Остальные методы остаются без изменений, кроме замены firebase_manager на database_manager
 
     def update_price(self, new_price: float) -> bool:
         """Обновляет цену за 10 попыток и сохраняет её в Firebase"""
@@ -28,8 +29,8 @@ class PaymentManager:
             self.amount = float(new_price)
             
             # Сохраняем цену в Firebase, если доступно
-            if self.firebase_manager:
-                self.firebase_manager.update_price(new_price)
+            if self.database_manager:
+                self.database_manager.update_price(new_price)
                 
             return True
         except Exception as e:
