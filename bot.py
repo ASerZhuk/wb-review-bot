@@ -188,22 +188,20 @@ class WbReview:
             
             if response.status_code == 200:
                 if not response.json().get("feedbacks"):
-                    raise Exception("Сервер 1 не подошел")
-                return response.json()
+                    time.sleep(random.uniform(4, 8))
+                    headers = get_random_headers()
+                    response = requests.get(
+                        f'https://feedbacks2.wb.ru/feedbacks/v1/{self.root_id}',
+                        headers=headers,
+                        timeout=15
+                    )
             
-            # Пробуем второй сервер после задержки
-            time.sleep(random.uniform(4, 8))
-            headers = get_random_headers()
-            response = requests.get(
-                f'https://feedbacks2.wb.ru/feedbacks/v1/{self.root_id}',
-                headers=headers,
-                timeout=15
-            )
-            
-            if response.status_code == 200:
+                    if response.status_code == 200:
+                        return response.json()
+                    else:
+                        raise Exception(f"Не удалось получить отзывы. Код ответа: {response.status_code}")
                 return response.json()
-            else:
-                raise Exception(f"Не удалось получить отзывы. Код ответа: {response.status_code}")
+                    
         except Exception as e:
             logger.error(f"Error in get_review: {str(e)}")
             raise Exception(f"Ошибка при получении отзывов: {str(e)}")
