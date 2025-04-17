@@ -1,4 +1,4 @@
-sqlite
+
 requests
 g4f
 pyTelegramBotAPI
